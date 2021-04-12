@@ -45,7 +45,7 @@ ActiveRecord::Schema.define(version: 2019_06_19_214914) do
   enable_extension "plpgsql"
 
   create_enum "status_type", %w[new pending active archived]
-  
+
   create_table "orders", id: :serial, force: :cascade do |t|
     t.enum "status", as: "status_type", default: "new"
   end
@@ -151,6 +151,7 @@ ALTER TYPE status_type RENAME VALUE 'on hold' TO 'OnHold';
 
 ### Module Builder
 
+You can specify the values
 ```ruby
 class ContactInfo < ActiveRecord::Base
   include PGEnum(contact_method: %w[Email SMS Phone])
@@ -179,11 +180,27 @@ class User < ActiveRecord::Base
 end
 ```
 
-There's no technical reason why you couldn't detect enum columns at startup time and automatically do this wireup, but I feel that the benefit of self-documenting outweighs the convenience.
+Alternatively values can be inferred from the enum values using the `inferred_enum` helper, which can be helpful for readability especially if the type contains a large number of values.
+
+For example:
+```ruby
+class ContactInfo < ActiveRecord::Base
+  inferred_enum :contact_method, :contact_method_type
+end
+```
+
+assuming `contact_info_type` constains `Email, SMS, Phone`, this is equivelent to
+```ruby
+class ContactInfo < ActiveRecord::Base
+  enum contact_method: { Email: "Email", SMS: "SMS", Phone: "Phone" }
+end
+```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `appraisal rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies. You will need a database user specified by the DB_USER (defaults to `pg_enum`) environment variable with CREATEDB permissions.
+
+Run `appraisal rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 Test a specific version with `appraisal 6.0 rake spec`. This is usually necessary because different versions have different Ruby version support.
 

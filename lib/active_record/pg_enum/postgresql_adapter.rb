@@ -36,6 +36,30 @@ module ActiveRecord
           .sort { |a, b| a.first <=> b.first }
           .each_with_object({}) { |(name, values), memo| memo[name] = deserialize.call(values) }
       end
+
+      # Helper method that returns only the values of a specific ENUM types.  Uses a WeakRef as a short lived
+      # cache to prevent hitting the database for every enum on startup.
+      #
+      # Returns an array of strings like ["foo", "bar", "baz"]
+      def self.cached_enum_values
+        enum_types
+      end
+
+      # Helper method to creates an ActiveRecord enum, inferring the values from the ENUM type specified.
+      #
+      # Can be called as `inferred_enum(foo: :foo_type)` or can accept any arguments normally accepted
+      # by ActiveRecord enum for example `inferred_enum(foo: :foo_type, _prefix: 'foobar', _suffix: true)`
+      #
+      def inferred_enum(options)
+        raise ArgumentError('inferred_enum expects a hash argument') unless options.is_a?(Hash)
+
+        key, value = options.shift
+
+        enum_values = PostgreSQLAdapter.cached_enum_types[value.to_s]
+        enum_value_hash = enum_values.zip(enum_values).to_h
+        enum({ key.to_sym => enum_value_hash, **options })
+      end
+
     end
   end
 end
